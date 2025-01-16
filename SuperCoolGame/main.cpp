@@ -192,12 +192,7 @@ int main()
 				if (event.mouseButton.button == sf::Mouse::Left)
 				{
 					const sf::Vector2f mousePosition = static_cast<sf::Vector2f>(sf::Mouse::getPosition()) - static_cast<sf::Vector2f>(window.getSize());
-					const sf::Vector2f windowHalfSize = static_cast<sf::Vector2f>(window.getSize()) * 0.5f;
-					player.acceleration = {
-						(mousePosition.x > windowHalfSize.x) - (mousePosition.x < windowHalfSize.x) * PLAYER_DASH_SPEED, 
-						(mousePosition.y > windowHalfSize.y) - (mousePosition.y < windowHalfSize.y) * PLAYER_DASH_SPEED 
-					};
-					printf("%f\n", player.acceleration.x);
+					printf("%f, %f\n", mousePosition.x, mousePosition.y);
 				}
 			}
 		}
@@ -221,7 +216,7 @@ int main()
 		staticCollisionCheck(staticBodies, entities);
 		entityCollisionCheck(entities);
 
-		camera.setCenter(player.position);
+		camera.setCenter(player.position + player.size * 0.5f);
 		window.setView(camera);
 
 
