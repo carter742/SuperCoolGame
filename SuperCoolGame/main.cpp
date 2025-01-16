@@ -2,13 +2,13 @@
 #include <iostream>
 #include <random>
 
-constexpr float PLAYER_MOVEMENT_SPEED = 10.f;
-constexpr float PLAYER_JUMP_HEIGHT = 30.f;
+constexpr float PLAYER_MOVEMENT_SPEED = 15.f;
+constexpr float PLAYER_DASH_SPEED = 500.f;
 
 struct Entity
 {
 	bool collisionEnabled = true;
-	bool gravityEnabled = true;
+	bool gravityEnabled = false;
 
 	sf::Vector2f position, size, velocity, acceleration;
 	sf::Color color;
@@ -63,7 +63,7 @@ void entityCollisionCheck(std::vector<Entity*>& entities)
 
 			const sf::Vector2f overlap = getOverlap(rectA, rectB);
 
-			if (overlap.x < overlap.y)
+			if (overlap.x < overlap.y && rectA.top + rectA.height - overlap.y > rectB.top)
 			{
 				const char direction = (entityA->velocity.x > 0) - (entityA->velocity.x < 0);
 				entityA->position.x -= overlap.x * direction * 0.5f;
@@ -120,7 +120,11 @@ void playerMovement(Entity& player)
 	}
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 	{
-		player.acceleration.y -= PLAYER_JUMP_HEIGHT;
+		player.acceleration.y -= PLAYER_MOVEMENT_SPEED;
+	}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+	{
+		player.acceleration.y += PLAYER_MOVEMENT_SPEED;
 	}
 }
 
@@ -133,6 +137,18 @@ void drawRect(sf::RenderWindow& window, const Entity& entity)
 	window.draw(rect);
 }
 
+void drawRect(sf::RenderWindow& window, const std::vector<Entity*>& entities)
+{
+	static sf::RectangleShape rect;
+	for (const auto& entity : entities)
+	{
+		rect.setPosition(entity->position);
+		rect.setSize(entity->size);
+		rect.setFillColor(entity->color);
+		window.draw(rect);
+	}
+}
+
 void drawRect(sf::RenderWindow& window, const StaticBody& staticBody)
 {
 	static sf::RectangleShape rect;
@@ -141,6 +157,7 @@ void drawRect(sf::RenderWindow& window, const StaticBody& staticBody)
 	rect.setFillColor(staticBody.color);
 	window.draw(rect);
 }
+
 
 int main()
 {
@@ -158,6 +175,9 @@ int main()
 	std::vector<Entity*> entities{ &player, &enemy };
 	std::vector<StaticBody*> staticBodies{ &floor };
 
+	sf::View camera{ sf::FloatRect{ player.position, static_cast<sf::Vector2f>(window.getSize()) }};
+	window.setView(camera);
+
 	while (window.isOpen())
 	{
 		deltaTime = clock.restart().asSeconds();
@@ -167,11 +187,22 @@ int main()
 		{
 			if (event.type == sf::Event::Closed)
 				window.close();
+			else if (event.type == sf::Event::MouseButtonPressed)
+			{
+				if (event.mouseButton.button == sf::Mouse::Left)
+				{
+					const sf::Vector2f mousePosition = static_cast<sf::Vector2f>(sf::Mouse::getPosition()) - static_cast<sf::Vector2f>(window.getSize());
+					const sf::Vector2f windowHalfSize = static_cast<sf::Vector2f>(window.getSize()) * 0.5f;
+					player.acceleration = {
+						(mousePosition.x > windowHalfSize.x) - (mousePosition.x < windowHalfSize.x) * PLAYER_DASH_SPEED, 
+						(mousePosition.y > windowHalfSize.y) - (mousePosition.y < windowHalfSize.y) * PLAYER_DASH_SPEED 
+					};
+					printf("%f\n", player.acceleration.x);
+				}
+			}
 		}
 
 		playerMovement(player);
-		staticCollisionCheck(staticBodies, entities);
-		entityCollisionCheck(entities);
 
 		for (auto& entity : entities)
 		{
@@ -187,9 +218,15 @@ int main()
 			entity->velocity.y *= entity->friction.y;
 		}
 
+		staticCollisionCheck(staticBodies, entities);
+		entityCollisionCheck(entities);
+
+		camera.setCenter(player.position);
+		window.setView(camera);
+
+
 		window.clear();
-		drawRect(window, player);
-		drawRect(window, enemy);
+		drawRect(window, entities);
 		drawRect(window, floor);
 		window.display();
 	}
