@@ -1,4 +1,5 @@
 ﻿#include "SFML/Graphics.hpp"
+#include <fstream>
 #include <iostream>
 #include <random>
 
@@ -33,6 +34,11 @@ struct StaticBody
 	sf::Color color;
 };
 
+template<typename T>
+std::string vectorToString(T vector)
+{
+	return "x: " + std::to_string(vector.x) + ", y: " + std::to_string(vector.y);
+}
 
 sf::Vector2f getOverlap(const sf::FloatRect& rectA, const sf::FloatRect& rectB)
 {
@@ -128,7 +134,8 @@ void playerMovement(Entity& player)
 	}
 }
 
-void drawRect(sf::RenderWindow& window, const Entity& entity)
+template<typename T>
+void drawRect(sf::RenderWindow& window, const T& entity)
 {
 	static sf::RectangleShape rect;
 	rect.setPosition(entity.position);
@@ -137,7 +144,8 @@ void drawRect(sf::RenderWindow& window, const Entity& entity)
 	window.draw(rect);
 }
 
-void drawRect(sf::RenderWindow& window, const std::vector<Entity*>& entities)
+template<typename T>
+void drawRect(sf::RenderWindow& window, const std::vector<T*>& entities)
 {
 	static sf::RectangleShape rect;
 	for (const auto& entity : entities)
@@ -149,13 +157,12 @@ void drawRect(sf::RenderWindow& window, const std::vector<Entity*>& entities)
 	}
 }
 
-void drawRect(sf::RenderWindow& window, const StaticBody& staticBody)
+
+void loadLevel(const std::string levelFilePath)
 {
-	static sf::RectangleShape rect;
-	rect.setPosition(staticBody.position);
-	rect.setSize(staticBody.size);
-	rect.setFillColor(staticBody.color);
-	window.draw(rect);
+	std::ifstream f{ levelFilePath.c_str() };
+
+
 }
 
 
@@ -189,10 +196,16 @@ int main()
 				window.close();
 			else if (event.type == sf::Event::MouseButtonPressed)
 			{
+				if (event.mouseButton.button == sf::Mouse::Right)
+				{
+					const sf::Vector2f mousePosition = sf::Vector2f{ (float)event.mouseButton.x, (float)event.mouseButton.y } - static_cast<sf::Vector2f>(window.getSize()) * 0.5f;
+					player.acceleration = mousePosition / std::sqrt(mousePosition.x * mousePosition.x + mousePosition.y * mousePosition.y) * PLAYER_DASH_SPEED;
+				}
+
 				if (event.mouseButton.button == sf::Mouse::Left)
 				{
-					const sf::Vector2f mousePosition = static_cast<sf::Vector2f>(sf::Mouse::getPosition()) - static_cast<sf::Vector2f>(window.getSize());
-					printf("%f, %f\n", mousePosition.x, mousePosition.y);
+					const sf::Vector2 mousePosition{ (float)event.mouseButton.x, (float)event.mouseButton.y };
+					printf("%s\n", vectorToString<sf::Vector2f>(mousePosition).c_str());
 				}
 			}
 		}
@@ -219,10 +232,9 @@ int main()
 		camera.setCenter(player.position + player.size * 0.5f);
 		window.setView(camera);
 
-
 		window.clear();
-		drawRect(window, entities);
-		drawRect(window, floor);
+		drawRect<Entity>(window, entities);
+		drawRect<StaticBody>(window, staticBodies);
 		window.display();
 	}
 }
