@@ -98,10 +98,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="game\collision.cpp" />
+    <ClCompile Include="game\gameParts.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="levels\level1.txt" />
+    <ClInclude Include="game\game.h" />
+    <ClInclude Include="game\gameParts.h" />
+    <ClInclude Include="game\collision.h" />
+    <ClInclude Include="game\vectorMath.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
