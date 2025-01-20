@@ -4,16 +4,31 @@
 
 namespace gm
 {
-	struct Entity
+	class Base
 	{
+	public:
+		sf::Vector2f position, size;
+		sf::Color color;
+
+		unsigned int collisionLayer = 0;
+		unsigned int collisionLayerToCheck = 0;
+
+		Base() = default;
+		Base(const sf::Vector2f position, const sf::Vector2f size, const sf::Color color) : position(position), size(size), color(color) {};
+	};
+
+	class Entity : public Base
+	{
+	public:
 		bool collisionEnabled = true;
 		bool gravityEnabled = false;
 
-		sf::Vector2f position, size, velocity, acceleration;
-		sf::Color color;
+		sf::Vector2f velocity, acceleration;
 		std::string id;
 
 		sf::Vector2f friction = { 0.5f, 0.5f };
+
+		int hp = 10;
 
 		Entity();
 		Entity(const sf::Vector2f position, const sf::Vector2f size, const sf::Color color);
@@ -21,20 +36,24 @@ namespace gm
 		bool operator==(const Entity& b);
 	};
 
-	struct StaticBody
+	class StaticBody: public Base
 	{
-		sf::Vector2f position, size;
-		sf::Color color;
+	public:
+		StaticBody() = default;
+		StaticBody(const sf::Vector2f position, const sf::Vector2f size, const sf::Color color) : Base(position, size, color) {}
 	};
 
-	struct Projectile
+	class Projectile : public Base
 	{
-		sf::Vector2f position, size;
-		sf::Color color;
-
+	public:
 		sf::Vector2f velocity, acceleration;
 		sf::Vector2f friction = { 1.f, 1.f };
+
+		Projectile() : Base({ 0.f, 0.f }, { 0.f, 0.f }, sf::Color::Red) {}
+		Projectile(const sf::Vector2f position, const sf::Vector2f size, const sf::Color color) : Base(position, size, color) {}
 	};
+
+
 
 	template<typename T>
 	void drawRect(sf::RenderWindow& window, const T& entity)
@@ -78,6 +97,6 @@ namespace gm
 		}
 
 		vector.push_back(element);
-		return vector.size() - 1;
+		return static_cast<std::size_t>(vector.size() - 1);
 	}
 }

@@ -3,13 +3,13 @@
 namespace gm
 {
 	Entity::Entity(const sf::Vector2f position, const sf::Vector2f size, const sf::Color color) 
-		: position(position), size(size), color(color), velocity(0.f, 0.f), acceleration(0.f, 0.f)
+		: Base(position, size, color), velocity(0.f, 0.f), acceleration(0.f, 0.f)
 	{
 		id = std::to_string(std::rand()) + std::to_string(std::rand()) + std::to_string(std::rand());
 	}
 
 	Entity::Entity()
-		: color(sf::Color::Red)
+		: Base({ 0.f, 0.f }, { 0.f, 0.f }, sf::Color::Red)
 	{
 		id = std::to_string(std::rand()) + std::to_string(std::rand()) + std::to_string(std::rand());
 	}
@@ -24,6 +24,9 @@ namespace gm
 	{
 		for (auto& entity : entities)
 		{
+			if (!entity)
+				continue;
+
 			if (entity->gravityEnabled)
 				entity->acceleration.y += 10.f;
 

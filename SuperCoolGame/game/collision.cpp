@@ -14,14 +14,17 @@ namespace gm
 	{
 		for (auto& entityA : entities)
 		{
-			if (!entityA->collisionEnabled)
+			if (!entityA || !entityA->collisionEnabled)
 				continue;
 
 			sf::FloatRect rectA{ entityA->position + entityA->velocity, entityA->size };
 
 			for (auto& entityB : entities)
 			{
-				if (entityA == entityB)
+				if (!entityB || entityA == entityB)
+					continue;
+
+				if (entityA->collisionLayerToCheck != entityB->collisionLayer)
 					continue;
 
 				sf::FloatRect rectB{ entityB->position + entityB->velocity, entityB->size };
@@ -51,10 +54,19 @@ namespace gm
 	{
 		for (auto& entity : entities)
 		{
+			if (!entity)
+				continue;
+
 			sf::FloatRect rectA{ entity->position + entity->velocity, entity->size };
 
 			for (auto& staticBody : staticBodies)
 			{
+				if (!entity)
+					continue;
+
+				if (entity->collisionLayerToCheck != staticBody->collisionLayer)
+					continue;
+				
 				sf::FloatRect rectB{ staticBody->position, staticBody->size };
 
 				sf::Vector2f movementDirection{
@@ -81,7 +93,7 @@ namespace gm
 		}
 	}
 
-	void projectileCollisionCheck(const sf::RenderWindow& window, std::vector<Projectile*>& projectiles, std::vector<Entity*> entities)
+	void projectileCollisionCheck(const sf::RenderWindow& window, std::vector<Projectile*>& projectiles, std::vector<Entity*>& entities)
 	{
 		sf::FloatRect windowRect{ {0.f, 0.f}, static_cast<sf::Vector2f>(window.getSize()) };
 
@@ -96,6 +108,27 @@ namespace gm
 			{
 				projectile = nullptr;
 				continue;
+			}
+
+			for (auto& entity : entities)
+			{
+				if (!entity)
+					continue;
+
+				if (projectile->collisionLayerToCheck != entity->collisionLayer)
+					continue;
+
+				sf::FloatRect entityRect{ entity->position + entity->velocity, entity->size };
+
+				if (!projectileRect.intersects(entityRect))
+					continue;
+
+				projectile = nullptr;
+
+				entity->hp -= 1;
+
+				if (entity->hp <= 0)
+					entity = nullptr;
 			}
 		}
 	}

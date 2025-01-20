@@ -36,6 +36,7 @@ static void initGame(gm::GameData& gameData)
 	gameData.entities.push_back(&gameData.player);
 
 	gameData.entities.push_back(new gm::Entity{ {50.f, 0.f}, { 20.f, 20.f }, sf::Color::Cyan });
+	gameData.entities.back()->collisionLayer = 1;
 }
 
 static void checkWindowInputs(sf::RenderWindow& window, gm::GameData& gameData)
@@ -64,6 +65,40 @@ static void checkWindowInputs(sf::RenderWindow& window, gm::GameData& gameData)
 				gameData.projectiles.back()->velocity = sf::Vector2f{0.f, -1.f} * PLAYER_BULLET_SPEED;
 			}
 		}
+	}
+}
+
+void shootPlayerProjectile(gm::GameData& gameData)
+{
+	if (gameData.frame % 15 == 0)
+	{
+		gm::Projectile* projectile = new gm::Projectile{
+			{gameData.player.position.x + gameData.player.size.x * 0.5f - 5.f, gameData.player.position.y - 10.f},
+			{10.f, 10.f},
+			sf::Color::Magenta
+		};
+
+		std::size_t i = gm::addToVector(gameData.projectiles, projectile);
+
+		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, -1.f } *PLAYER_BULLET_SPEED;
+		gameData.projectiles[i]->collisionLayerToCheck = 1;
+	}
+}
+
+void spawnAsteroids(gm::GameData& gameData)
+{
+	if (gameData.frame % 30 == 0)
+	{
+		gm::Entity* asteroid = new gm::Entity{
+			{static_cast<float>(std::rand() % 780), 0},
+			{10.f, 10.f},
+			sf::Color::Cyan
+		};
+
+		std::size_t i = gm::addToVector(gameData.entities, asteroid);
+
+		gameData.entities[i]->velocity = sf::Vector2f{ 0.f, 1.f } * PLAYER_MOVEMENT_SPEED;
+		gameData.entities[i]->collisionLayer = 1;
 	}
 }
 
@@ -108,16 +143,8 @@ int main()
 		gm::drawRectList(window, gameData.projectiles);
 		window.display();
 
-		if (gameData.frame % 15 == 0)
-		{
-			std::size_t i = gm::addToVector<gm::Projectile>(gameData.projectiles, new gm::Projectile{
-				{gameData.player.position.x + gameData.player.size.x * 0.5f - 5.f, gameData.player.position.y - 10.f},
-				{10.f, 10.f},
-				sf::Color::Magenta
-			});
-
-			gameData.projectiles[i]->velocity = sf::Vector2f{0.f, -1.f} *PLAYER_BULLET_SPEED;
-		}
+		shootPlayerProjectile(gameData);
+		spawnAsteroids(gameData);
 
 		gameData.frame += 1;
 	}
