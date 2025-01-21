@@ -95,7 +95,7 @@ namespace gm
 
 	void projectileCollisionCheck(const sf::RenderWindow& window, std::vector<Projectile*>& projectiles, std::vector<Entity*>& entities)
 	{
-		sf::FloatRect windowRect{ {0.f, 0.f}, static_cast<sf::Vector2f>(window.getSize()) };
+		sf::FloatRect windowRect{ {0.f, -50.f}, static_cast<sf::Vector2f>(window.getSize()) };
 
 		for (auto& projectile : projectiles)
 		{
@@ -110,8 +110,40 @@ namespace gm
 				continue;
 			}
 
+			for (auto& projectileB : projectiles)
+			{
+				if (!projectile)
+					break;
+
+				if (!projectileB || projectile == projectileB)
+					continue;
+
+				if (projectile->collisionLayerToCheck != projectileB->collisionLayer)
+					continue;
+
+				sf::FloatRect projectileBRect{ projectileB->position + projectileB->velocity, projectileB->size };
+
+				if (!projectileRect.intersects(projectileBRect))
+					continue;
+
+				projectile->hp -= 1;
+
+				if (projectile->hp <= 0)
+					projectile = nullptr;
+
+				projectileB->hp -= 1;
+
+				if (projectileB->hp <= 0)
+					projectileB = nullptr;
+
+				break;
+			}
+
 			for (auto& entity : entities)
 			{
+				if (!projectile)
+					break;
+
 				if (!entity)
 					continue;
 
@@ -129,6 +161,8 @@ namespace gm
 
 				if (entity->hp <= 0)
 					entity = nullptr;
+
+				break;
 			}
 		}
 	}

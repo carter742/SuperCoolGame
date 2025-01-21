@@ -5,13 +5,19 @@
 #include "vectorMath.h"
 #include "collision.h"
 
+namespace conf
+{
+	constexpr float PLAYER_MOVEMENT_SPEED = 100.f;
+	constexpr float PLAYER_DASH_SPEED = 500.f;
+	constexpr float PLAYER_BULLET_SPEED = 5.f;//10.f;
+	constexpr float ENEMY_MOVEMENT_SPEED = 0.5f;
+}
 
 namespace gm
 {
-	constexpr unsigned int MAX_PROJECTILES = 10000;
-	
-	struct GameData
+	class GameData
 	{
+	public:
 		unsigned long long frame = 0;
 		sf::Clock clock;
 
@@ -20,5 +26,12 @@ namespace gm
 		std::vector<Entity*> entities;
 		std::vector<StaticBody*> staticBodies;
 		std::vector<Projectile*> projectiles;
+
+		const sf::IntRect defaultTextureRect{ {0, 0}, {16, 16} };
+		sf::Texture rocketshipTexture;
+		sf::Texture asteroidsTexture;
+		sf::Texture playerBulletTexture;
+
+		GameData();
 	};
 }

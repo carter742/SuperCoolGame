@@ -24,6 +24,9 @@
     <ClCompile Include="game\collision.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="game\game.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game\vectorMath.h">
@@ -38,5 +41,16 @@
     <ClInclude Include="game\game.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\sprites\rocketship.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\sprites\asteroids.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\sprites\playerBullet.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

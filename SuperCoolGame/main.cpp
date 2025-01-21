@@ -1,9 +1,8 @@
-﻿#include "SFML/Graphics.hpp"
-#include "./game/game.h"
+﻿#include "./game/game.h"
+#include "TGUI/TGUI.hpp"
+#include "TGUI/Backend/SFML-Graphics.hpp"
 
-constexpr float PLAYER_MOVEMENT_SPEED = 100.f;
-constexpr float PLAYER_DASH_SPEED = 500.f;
-constexpr float PLAYER_BULLET_SPEED = 10.f;
+#include <random>
 
 static void playerMovement(gm::Entity& player)
 {
@@ -26,79 +25,83 @@ static void playerMovement(gm::Entity& player)
 		movementAcceleration.y += 1;
 	}
 
-	player.acceleration += gm::normalize(movementAcceleration) * PLAYER_MOVEMENT_SPEED;
+	player.acceleration += gm::normalize(movementAcceleration) * conf::PLAYER_MOVEMENT_SPEED;
 }
 
 
 static void initGame(gm::GameData& gameData)
 {
-	gameData.player = { { 0.f, 370.f }, { 20.f, 20.f }, sf::Color::Green };
+	gameData.player = gm::Entity{ { 0.f, 370.f }, { 20.f, 14.f }, sf::Color::Green };
+	gameData.player.sprite.setTexture(gameData.rocketshipTexture);
+	gameData.player.sprite.setTextureRect(gameData.defaultTextureRect);
+	gameData.player.sprite.setScale({ 2.f, 2.f });
+	gameData.player.textureOffset = { 2.f, 4.f };
 	gameData.entities.push_back(&gameData.player);
-
-	gameData.entities.push_back(new gm::Entity{ {50.f, 0.f}, { 20.f, 20.f }, sf::Color::Cyan });
-	gameData.entities.back()->collisionLayer = 1;
 }
 
-static void checkWindowInputs(sf::RenderWindow& window, gm::GameData& gameData)
+static void checkWindowInputs(sf::RenderWindow& window)
 {
 	sf::Event event;
 	while (window.pollEvent(event))
 	{
 		if (event.type == sf::Event::Closed)
 			window.close();
-		if (event.type == sf::Event::MouseButtonPressed)
-		{
-			if (event.mouseButton.button == sf::Mouse::Right)
-			{
-				const sf::Vector2f mousePosition = sf::Vector2f{ (float)event.mouseButton.x, (float)event.mouseButton.y } - static_cast<sf::Vector2f>(window.getSize()) * 0.5f;
-				gameData.player.acceleration = gm::normalize(mousePosition) * PLAYER_DASH_SPEED;
-			}
-
-			if (event.mouseButton.button == sf::Mouse::Left)
-			{
-				gameData.projectiles.push_back(new gm::Projectile{ 
-					gameData.player.position, 
-					{10.f, 10.f}, 
-					sf::Color::Magenta 
-				});
-
-				gameData.projectiles.back()->velocity = sf::Vector2f{0.f, -1.f} * PLAYER_BULLET_SPEED;
-			}
-		}
 	}
 }
 
-void shootPlayerProjectile(gm::GameData& gameData)
+static void shootPlayerProjectile(gm::GameData& gameData)
 {
 	if (gameData.frame % 15 == 0)
 	{
 		gm::Projectile* projectile = new gm::Projectile{
-			{gameData.player.position.x + gameData.player.size.x * 0.5f - 5.f, gameData.player.position.y - 10.f},
+			{gameData.player.position.x + gameData.player.size.x * 0.5f - 5.f, gameData.player.position.y },
 			{10.f, 10.f},
 			sf::Color::Magenta
 		};
 
+		projectile->sprite.setTexture(gameData.playerBulletTexture);
+		projectile->sprite.setTextureRect(gameData.defaultTextureRect);
+		projectile->textureOffset = { 1.5f, 1.5f };
+		projectile->sprite.setScale({ 0.8f, 0.8f });
+
 		std::size_t i = gm::addToVector(gameData.projectiles, projectile);
 
-		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, -1.f } *PLAYER_BULLET_SPEED;
+		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, -1.f } * conf::PLAYER_BULLET_SPEED;
 		gameData.projectiles[i]->collisionLayerToCheck = 1;
 	}
 }
 
-void spawnAsteroids(gm::GameData& gameData)
+static void spawnAsteroids(gm::GameData& gameData)
 {
-	if (gameData.frame % 30 == 0)
+	if (gameData.frame % 10 == 0)
 	{
-		gm::Entity* asteroid = new gm::Entity{
-			{static_cast<float>(std::rand() % 780), 0},
-			{10.f, 10.f},
+		std::random_device rd;
+		std::mt19937 generator{ rd() };
+
+		std::uniform_real_distribution<float> sizeDistribution{ 10.f, 50.f };
+		std::uniform_real_distribution<float> speedDistribution{ 1.f, 2.f };
+		std::uniform_int_distribution<int> positionDistribution{ 0, 720 };
+
+		const float size = sizeDistribution(generator);
+		const int x = positionDistribution(generator);
+
+		gm::Projectile* asteroid = new gm::Projectile{
+			{static_cast<float>(x), -49.f},
+			{size, size},
 			sf::Color::Cyan
 		};
 
-		std::size_t i = gm::addToVector(gameData.entities, asteroid);
+		asteroid->sprite.setTexture(gameData.asteroidsTexture);
+		asteroid->sprite.setTextureRect(gameData.defaultTextureRect);
+		asteroid->sprite.setScale({ (size + 6.f) / 16.f, (size + 6.f) / 16.f });
+		asteroid->textureOffset = { 3.f, 3.f };
 
-		gameData.entities[i]->velocity = sf::Vector2f{ 0.f, 1.f } * PLAYER_MOVEMENT_SPEED;
-		gameData.entities[i]->collisionLayer = 1;
+		std::size_t i = gm::addToVector(gameData.projectiles, asteroid);
+
+		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, 1.f } * conf::ENEMY_MOVEMENT_SPEED * speedDistribution(generator);
+		gameData.projectiles[i]->friction = { 1.f, 1.f };
+		gameData.projectiles[i]->hp = 10;
+		gameData.projectiles[i]->collisionLayer = 1;
 	}
 }
 
@@ -116,18 +119,34 @@ int main()
 
 	window.setView(camera);
 
+	//create ui
+	tgui::Gui gui{ window };
+
+	auto score = tgui::Label::create();
+	score->setText("Score: 0");
+	score->setTextSize(12);
+	score->getRenderer()->setTextColor(sf::Color::White);
+	gui.add(score);
+
 	//init game
 	gm::GameData gameData;
 	initGame(gameData);
 
 	float deltaTime = 0.f;
 
+	//make texture for rendering
+	sf::RenderTexture renderTexture;
+	if (!renderTexture.create(window.getSize().x, window.getSize().y))
+	{
+		printf("Failed to make texture!\n");
+	}
+
 	//game loop
 	while (window.isOpen())
 	{
 		deltaTime = gameData.clock.restart().asSeconds();
 
-		checkWindowInputs(window, gameData);
+		checkWindowInputs(window);
 		playerMovement(gameData.player);
 		
 		gm::entityMovementCalculations(deltaTime, gameData.entities);
@@ -137,15 +156,26 @@ int main()
 		gm::entityCollisionCheck(gameData.entities);
 		gm::projectileCollisionCheck(window, gameData.projectiles, gameData.entities);
 
+		renderTexture.clear();
+		gm::drawSpriteList(gameData.frame, renderTexture, gameData.projectiles);
+		gm::drawSpriteList(gameData.frame, renderTexture, gameData.entities);
+		renderTexture.display();
+
+
 		window.clear();
-		gm::drawRectList(window, gameData.entities);
-		gm::drawRectList(window, gameData.staticBodies);
-		gm::drawRectList(window, gameData.projectiles);
+
+		sf::Sprite renderTextureSprite{ renderTexture.getTexture() };
+		window.draw(renderTextureSprite);
+
+		gui.draw();
 		window.display();
 
 		shootPlayerProjectile(gameData);
 		spawnAsteroids(gameData);
 
 		gameData.frame += 1;
+
+		//update score every ten frames
+		score->setText("Score: " + std::to_string(static_cast<int>(gameData.frame / 20)));
 	}
 }

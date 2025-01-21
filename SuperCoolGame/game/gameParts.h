@@ -7,6 +7,11 @@ namespace gm
 	class Base
 	{
 	public:
+		sf::Sprite sprite;
+		sf::Vector2f textureOffset;
+		unsigned int timeBetweenAnimationFrames = 10;
+		unsigned int animationLength = 32;
+
 		sf::Vector2f position, size;
 		sf::Color color;
 
@@ -23,12 +28,13 @@ namespace gm
 		bool collisionEnabled = true;
 		bool gravityEnabled = false;
 
-		sf::Vector2f velocity, acceleration;
+		sf::Vector2f velocity;
+		sf::Vector2f acceleration;
 		std::string id;
 
 		sf::Vector2f friction = { 0.5f, 0.5f };
 
-		int hp = 10;
+		int hp = 3;
 
 		Entity();
 		Entity(const sf::Vector2f position, const sf::Vector2f size, const sf::Color color);
@@ -46,27 +52,27 @@ namespace gm
 	class Projectile : public Base
 	{
 	public:
-		sf::Vector2f velocity, acceleration;
+		sf::Vector2f velocity;
+		sf::Vector2f acceleration;
 		sf::Vector2f friction = { 1.f, 1.f };
+		int hp = 1;
 
 		Projectile() : Base({ 0.f, 0.f }, { 0.f, 0.f }, sf::Color::Red) {}
 		Projectile(const sf::Vector2f position, const sf::Vector2f size, const sf::Color color) : Base(position, size, color) {}
 	};
 
-
-
-	template<typename T>
-	void drawRect(sf::RenderWindow& window, const T& entity)
+	template<typename R, typename T>
+	void drawRect(R& texture, const T& entity)
 	{
 		static sf::RectangleShape rect;
 		rect.setPosition(entity.position);
 		rect.setSize(entity.size);
 		rect.setFillColor(entity.color);
-		window.draw(rect);
+		texture.draw(rect);
 	}
 
-	template<typename T>
-	void drawRectList(sf::RenderWindow& window, const std::vector<T*>& entities)
+	template<typename R, typename T>
+	void drawRectList(R& texture, const std::vector<T*>& entities)
 	{
 		static sf::RectangleShape rect;
 		for (const auto& entity : entities)
@@ -77,7 +83,50 @@ namespace gm
 			rect.setPosition(entity->position);
 			rect.setSize(entity->size);
 			rect.setFillColor(entity->color);
-			window.draw(rect);
+			texture.draw(rect);
+		}
+	}
+
+
+	template<typename R, typename T>
+	void drawSprite(const unsigned long long& frame, R& texture, T& entity)
+	{
+		entity.sprite.setPosition(entity.position - entity.textureOffset);
+
+		sf::IntRect entityRect = entity.sprite.getTextureRect();
+
+		if (frame % entity.timeBetweenAnimationFrames == 0)
+		{
+			entityRect.left += 16;
+			if (entityRect.left > entity.animationLength)
+				entityRect.left = 0;
+		}
+
+		entity.sprite.setTextureRect(entityRect);
+		texture.draw(entity.sprite);
+	}
+
+	template<typename R, typename T>
+	void drawSpriteList(const unsigned long long& frame, R& texture, std::vector<T*>& entities)
+	{
+		for (auto& entity : entities)
+		{
+			if (!entity)
+				continue;
+
+			entity->sprite.setPosition(entity->position - entity->textureOffset);
+
+			sf::IntRect entityRect = entity->sprite.getTextureRect();
+
+			if (frame % entity->timeBetweenAnimationFrames == 0)
+			{
+				entityRect.left += 16;
+				if (entityRect.left > static_cast<int>(entity->animationLength))
+					entityRect.left = 0;
+			}
+
+			entity->sprite.setTextureRect(entityRect);
+			texture.draw(entity->sprite);
 		}
 	}
 
