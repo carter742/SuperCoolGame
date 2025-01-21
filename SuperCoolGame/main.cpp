@@ -28,6 +28,10 @@ static void playerMovement(gm::Entity& player)
 	player.acceleration += gm::normalize(movementAcceleration) * conf::PLAYER_MOVEMENT_SPEED;
 }
 
+static void playerCollisonReaction(const std::string& group, gm::Base* self)
+{
+	
+}
 
 static void initGame(gm::GameData& gameData)
 {
@@ -36,6 +40,7 @@ static void initGame(gm::GameData& gameData)
 	gameData.player.sprite.setTextureRect(gameData.defaultTextureRect);
 	gameData.player.sprite.setScale({ 2.f, 2.f });
 	gameData.player.textureOffset = { 2.f, 4.f };
+	gameData.player.collisionCallback = &playerCollisonReaction;
 	gameData.entities.push_back(&gameData.player);
 }
 
@@ -53,27 +58,88 @@ static void shootPlayerProjectile(gm::GameData& gameData)
 {
 	if (gameData.frame % 15 == 0)
 	{
-		gm::Projectile* projectile = new gm::Projectile{
-			{gameData.player.position.x + gameData.player.size.x * 0.5f - 5.f, gameData.player.position.y },
-			{10.f, 10.f},
-			sf::Color::Magenta
-		};
+		if (!gameData.playerSplitShot)
+		{
+			gm::Projectile* projectile = new gm::Projectile{
+					{gameData.player.position.x + gameData.player.size.x * 0.5f - 5.f, gameData.player.position.y },
+					{10.f, 10.f},
+					sf::Color::Magenta
+			};
 
-		projectile->sprite.setTexture(gameData.playerBulletTexture);
-		projectile->sprite.setTextureRect(gameData.defaultTextureRect);
-		projectile->textureOffset = { 1.5f, 1.5f };
-		projectile->sprite.setScale({ 0.8f, 0.8f });
+			projectile->group = "projectile";
+			projectile->sprite.setTexture(gameData.playerBulletTexture);
+			projectile->sprite.setTextureRect(gameData.defaultTextureRect);
+			projectile->textureOffset = { 1.5f, 1.5f };
+			projectile->sprite.setScale({ 0.8f, 0.8f });
 
-		std::size_t i = gm::addToVector(gameData.projectiles, projectile);
+			const std::size_t vectorIndex = gm::addToVector(gameData.projectiles, projectile);
 
-		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, -1.f } * conf::PLAYER_BULLET_SPEED;
-		gameData.projectiles[i]->collisionLayerToCheck = 1;
+			gameData.projectiles[vectorIndex]->velocity = sf::Vector2f{ 0.f, -1.f } *conf::PLAYER_BULLET_SPEED;
+			gameData.projectiles[vectorIndex]->collisionLayerToCheck = 1;
+		}
+		else
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				gm::Projectile* projectile = new gm::Projectile{
+					{gameData.player.position.x + gameData.player.size.x * 0.5f - 5.f, gameData.player.position.y },
+					{10.f, 10.f},
+					sf::Color::Magenta
+				};
+
+				projectile->group = "projectile";
+				projectile->sprite.setTexture(gameData.playerBulletTexture);
+				projectile->sprite.setTextureRect(gameData.defaultTextureRect);
+				projectile->textureOffset = { 1.5f, 1.5f };
+				projectile->sprite.setScale({ 0.8f, 0.8f });
+
+				const std::size_t vectorIndex = gm::addToVector(gameData.projectiles, projectile);
+
+				gameData.projectiles[vectorIndex]->velocity = sf::Vector2f{ static_cast<float>(i - 1) * 0.2f, -1.f } *conf::PLAYER_BULLET_SPEED;
+				gameData.projectiles[vectorIndex]->collisionLayerToCheck = 1;
+			}
+		}
 	}
 }
 
+static void spawnEnemyRocketShips(gm::GameData& gameData)
+{
+	if (gameData.frame % 5 == 0 && rand() % 2 == 1)
+	{
+		std::random_device rd;
+		std::mt19937 generator{ rd() };
+
+		std::uniform_real_distribution<float> sizeDistribution{ 10.f, 50.f };
+		std::uniform_real_distribution<float> speedDistribution{ 1.f, 2.f };
+		std::uniform_int_distribution<int> positionDistribution{ 0, 390 };
+
+		const float size = sizeDistribution(generator);
+		const int y = positionDistribution(generator);
+
+		gm::Projectile*  rocket = new gm::Projectile{
+			{820.f, static_cast<float>(y)},
+			{10.f, 10.f},
+			sf::Color::Cyan
+		};
+
+		rocket->group = "rocketship";
+		rocket->sprite.setTexture(gameData.asteroidsTexture);
+		rocket->sprite.setTextureRect(gameData.defaultTextureRect);
+		rocket->textureOffset = { 3.f, 3.f };
+
+		std::size_t i = gm::addToVector(gameData.projectiles, rocket);
+		
+		gameData.projectiles[i]->velocity = sf::Vector2f{ -1.f, 0 } * conf::ENEMY_ROCKET_SHIP_SPEED * speedDistribution(generator);
+		gameData.projectiles[i]->friction = { 1.f, 1.f };
+		gameData.projectiles[i]->hp = 10;
+		gameData.projectiles[i]->collisionLayer = 1;
+	}
+}
+
+
 static void spawnAsteroids(gm::GameData& gameData)
 {
-	if (gameData.frame % 10 == 0)
+	if (gameData.frame % 10 == 0 && rand() % 10 == 1)
 	{
 		std::random_device rd;
 		std::mt19937 generator{ rd() };
@@ -91,6 +157,7 @@ static void spawnAsteroids(gm::GameData& gameData)
 			sf::Color::Cyan
 		};
 
+		asteroid->group = "asteroid";
 		asteroid->sprite.setTexture(gameData.asteroidsTexture);
 		asteroid->sprite.setTextureRect(gameData.defaultTextureRect);
 		asteroid->sprite.setScale({ (size + 6.f) / 16.f, (size + 6.f) / 16.f });
@@ -98,12 +165,47 @@ static void spawnAsteroids(gm::GameData& gameData)
 
 		std::size_t i = gm::addToVector(gameData.projectiles, asteroid);
 
-		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, 1.f } * conf::ENEMY_MOVEMENT_SPEED * speedDistribution(generator);
+		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, 1.f } *conf::ENEMY_MOVEMENT_SPEED * speedDistribution(generator);
 		gameData.projectiles[i]->friction = { 1.f, 1.f };
 		gameData.projectiles[i]->hp = 10;
 		gameData.projectiles[i]->collisionLayer = 1;
 	}
 }
+
+static void spawnNebula(gm::GameData& gameData)
+{
+	if (gameData.frame % 10 == 0 && rand() % 10 == 1)
+	{
+		std::random_device rd;
+		std::mt19937 generator{ rd() };
+
+		std::uniform_real_distribution<float> sizeDistribution{ 10.f, 50.f };
+		std::uniform_real_distribution<float> speedDistribution{ 1.f, 2.f };
+		std::uniform_int_distribution<int> positionDistribution{ 0, 720 };
+
+		const float size = 10;
+		const int x = positionDistribution(generator);
+
+		gm::Projectile* nebula = new gm::Projectile{
+			{static_cast<float>(x), -49.f},
+			{size, size},
+			sf::Color::Cyan
+		};
+		
+		nebula->group = "nebula";
+		nebula->sprite.setTexture(gameData.asteroidsTexture);
+		nebula->sprite.setTextureRect(gameData.defaultTextureRect);
+		nebula->textureOffset = { 3.f, 3.f };
+
+		std::size_t i = gm::addToVector(gameData.projectiles, nebula);
+
+		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, 1.f } * conf::NEBULA_MOVEMENT_SPEED * speedDistribution(generator);
+		gameData.projectiles[i]->friction = { 1.f, 1.f };
+		gameData.projectiles[i]->hp = 10;
+		gameData.projectiles[i]->collisionLayer = 1;
+	}
+}
+
 
 int main()
 {
@@ -172,6 +274,8 @@ int main()
 
 		shootPlayerProjectile(gameData);
 		spawnAsteroids(gameData);
+		spawnEnemyRocketShips(gameData);
+		spawnNebula(gameData);
 
 		gameData.frame += 1;
 

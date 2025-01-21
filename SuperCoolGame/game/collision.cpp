@@ -46,6 +46,16 @@ namespace gm
 					entityA->position.y -= overlap.y * direction * 0.5f;
 					entityB->position.y += overlap.y * direction * 0.5f;
 				}
+
+				if (entityA->collisionCallback)
+				{
+					entityA->collisionCallback(entityB->group, entityA);
+				}
+
+				if (entityB->collisionCallback)
+				{
+					entityB->collisionCallback(entityA->group, entityB);
+				}
 			}
 		}
 	}
@@ -89,14 +99,24 @@ namespace gm
 					const char direction = (entity->velocity.y > 0) - (entity->velocity.y < 0);
 					entity->position.y -= overlap.y * direction;
 				}
+
+				if (entity->collisionCallback)
+				{
+					entity->collisionCallback(staticBody->group, entity);
+				}
+
+				if (staticBody->collisionCallback)
+				{
+					staticBody->collisionCallback(entity->group, staticBody);
+				}
 			}
 		}
 	}
 
 	void projectileCollisionCheck(const sf::RenderWindow& window, std::vector<Projectile*>& projectiles, std::vector<Entity*>& entities)
 	{
-		sf::FloatRect windowRect{ {0.f, -50.f}, static_cast<sf::Vector2f>(window.getSize()) };
-
+		sf::FloatRect windowRect{ {-50.f, -50.f}, static_cast<sf::Vector2f>(window.getSize()) + sf::Vector2f{100.f, 100.f} };
+		
 		for (auto& projectile : projectiles)
 		{
 			if (!projectile)
@@ -126,12 +146,24 @@ namespace gm
 				if (!projectileRect.intersects(projectileBRect))
 					continue;
 
-				projectile->hp -= 1;
+				if (projectile->takeDamage || projectileB->enableDamage)
+					projectile->hp -= 1;
+
+				if (projectile->collisionCallback)
+				{
+					projectile->collisionCallback(projectileB->group, projectile);
+				}
 
 				if (projectile->hp <= 0)
 					projectile = nullptr;
 
-				projectileB->hp -= 1;
+				if (projectileB->takeDamage || projectile->enableDamage)
+					projectileB->hp -= 1;
+
+				if (projectileB->collisionCallback)
+				{
+					projectileB->collisionCallback(projectile->group, projectileB);
+				}
 
 				if (projectileB->hp <= 0)
 					projectileB = nullptr;
@@ -155,9 +187,21 @@ namespace gm
 				if (!projectileRect.intersects(entityRect))
 					continue;
 
-				projectile = nullptr;
+				if (projectile->collisionCallback)
+				{
+					projectile->collisionCallback(entity->group, projectile);
+				}
 
-				entity->hp -= 1;
+				if (entity->collisionCallback)
+				{
+					entity->collisionCallback(projectile->group, entity);
+				}
+
+				if (projectile->enableDamage)
+					entity->hp -= 1;
+
+				if (projectile->dissapearOnHit)
+					projectile = nullptr;
 
 				if (entity->hp <= 0)
 					entity = nullptr;

@@ -7,6 +7,9 @@ namespace gm
 	class Base
 	{
 	public:
+		using CollisionCallback = void (*)(const std::string& group, Base* self);
+		CollisionCallback collisionCallback = nullptr;
+
 		sf::Sprite sprite;
 		sf::Vector2f textureOffset;
 		unsigned int timeBetweenAnimationFrames = 10;
@@ -14,6 +17,8 @@ namespace gm
 
 		sf::Vector2f position, size;
 		sf::Color color;
+
+		std::string group;
 
 		unsigned int collisionLayer = 0;
 		unsigned int collisionLayerToCheck = 0;
@@ -52,6 +57,10 @@ namespace gm
 	class Projectile : public Base
 	{
 	public:
+		bool enableDamage = true;
+		bool takeDamage = true;
+		bool dissapearOnHit = true;
+
 		sf::Vector2f velocity;
 		sf::Vector2f acceleration;
 		sf::Vector2f friction = { 1.f, 1.f };
