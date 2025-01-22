@@ -8,19 +8,19 @@ static void playerMovement(gm::Entity& player)
 {
 	sf::Vector2f movementAcceleration{ 0.f, 0.f};
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 	{
 		movementAcceleration.x -= 1;
 	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 	{
 		movementAcceleration.x += 1;
 	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 	{
 		movementAcceleration.y -= 1;
 	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
 	{
 		movementAcceleration.y += 1;
 	}
@@ -109,11 +109,9 @@ static void spawnEnemyRocketShips(gm::GameData& gameData)
 		std::random_device rd;
 		std::mt19937 generator{ rd() };
 
-		std::uniform_real_distribution<float> sizeDistribution{ 10.f, 50.f };
 		std::uniform_real_distribution<float> speedDistribution{ 1.f, 2.f };
 		std::uniform_int_distribution<int> positionDistribution{ 0, 390 };
 
-		const float size = sizeDistribution(generator);
 		const int y = positionDistribution(generator);
 
 		gm::Projectile*  rocket = new gm::Projectile{
@@ -136,6 +134,12 @@ static void spawnEnemyRocketShips(gm::GameData& gameData)
 	}
 }
 
+static void asteroidCallback(gm::GameData& gameData, gm::Base* self)
+{
+	gm::Projectile* asteroid = static_cast<gm::Projectile*>(self);
+	asteroid->size = static_cast<sf::Vector2f>(sf::Vector2i{ asteroid->hp, asteroid->hp });
+	asteroid->sprite.setScale({ (asteroid->size.x + 6.f) / 16.f, (asteroid->size.y + 6.f) / 16.f });
+}
 
 static void spawnAsteroids(gm::GameData& gameData)
 {
@@ -144,7 +148,7 @@ static void spawnAsteroids(gm::GameData& gameData)
 		std::random_device rd;
 		std::mt19937 generator{ rd() };
 
-		std::uniform_real_distribution<float> sizeDistribution{ 10.f, 50.f };
+		std::uniform_real_distribution<float> sizeDistribution{ 30.f, 50.f };
 		std::uniform_real_distribution<float> speedDistribution{ 1.f, 2.f };
 		std::uniform_int_distribution<int> positionDistribution{ 0, 720 };
 
@@ -167,8 +171,10 @@ static void spawnAsteroids(gm::GameData& gameData)
 
 		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, 1.f } *conf::ENEMY_MOVEMENT_SPEED * speedDistribution(generator);
 		gameData.projectiles[i]->friction = { 1.f, 1.f };
-		gameData.projectiles[i]->hp = 10;
+		gameData.projectiles[i]->hp = size;
 		gameData.projectiles[i]->collisionLayer = 1;
+
+		asteroid->processCallback = &asteroidCallback;
 	}
 }
 
@@ -251,6 +257,8 @@ int main()
 		checkWindowInputs(window);
 		playerMovement(gameData.player);
 		
+		gm::executeProcesses(gameData, gameData.projectiles);
+
 		gm::entityMovementCalculations(deltaTime, gameData.entities);
 		gm::projectileMovementCalculations(deltaTime, gameData.projectiles);
 		
@@ -274,8 +282,8 @@ int main()
 
 		shootPlayerProjectile(gameData);
 		spawnAsteroids(gameData);
-		spawnEnemyRocketShips(gameData);
-		spawnNebula(gameData);
+		//spawnEnemyRocketShips(gameData);
+		//spawnNebula(gameData);
 
 		gameData.frame += 1;
 
