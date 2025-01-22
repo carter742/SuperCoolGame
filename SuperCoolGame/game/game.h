@@ -102,12 +102,15 @@ namespace gm
 	{
 	public:
 		unsigned long long frame = 0;
+		unsigned long long nextShootingFrame = 0;
 
 		bool playerSplitShot = false;
+		bool playerShooting = false;
 
 		sf::Clock clock;
 
 		Entity player;
+		unsigned int playerAmmo = 20;
 
 		std::vector<Entity*> entities;
 		std::vector<StaticBody*> staticBodies;

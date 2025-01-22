@@ -4,7 +4,7 @@
 
 #include <random>
 
-static void playerMovement(gm::Entity& player)
+static void playerMovement(gm::GameData& gameData)
 {
 	sf::Vector2f movementAcceleration{ 0.f, 0.f};
 
@@ -25,7 +25,18 @@ static void playerMovement(gm::Entity& player)
 		movementAcceleration.y += 1;
 	}
 
-	player.acceleration += gm::normalize(movementAcceleration) * conf::PLAYER_MOVEMENT_SPEED;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) || sf::Mouse::isButtonPressed(sf::Mouse::Left))
+	{
+		if (gameData.playerShooting == false)
+			gameData.nextShootingFrame = gameData.frame;
+		gameData.playerShooting = true;
+	}
+	else
+	{
+		gameData.playerShooting = false;
+	}
+
+	gameData.player.acceleration += gm::normalize(movementAcceleration) * conf::PLAYER_MOVEMENT_SPEED;
 }
 
 static void playerCollisonReaction(const std::string& group, gm::Base* self)
@@ -61,7 +72,7 @@ static void checkWindowInputs(sf::RenderWindow& window)
 
 static void shootPlayerProjectile(gm::GameData& gameData)
 {
-	if (gameData.frame % 15 == 0)
+	if (gameData.playerShooting && gameData.frame >= gameData.nextShootingFrame)
 	{
 		if (!gameData.playerSplitShot)
 		{
@@ -82,6 +93,8 @@ static void shootPlayerProjectile(gm::GameData& gameData)
 			gameData.projectiles[vectorIndex]->velocity = sf::Vector2f{ 0.f, -1.f } *conf::PLAYER_BULLET_SPEED;
 			gameData.projectiles[vectorIndex]->collisionLayerToCheck = 1;
 			gameData.projectiles[vectorIndex]->collisionLayer = 2;
+
+			gameData.nextShootingFrame += 15;
 		}
 		else
 		{
@@ -250,10 +263,10 @@ static void spawnHealthPickups(gm::GameData& gameData)
 	}
 }
 
-void healthDisplay(sf::RenderWindow& window, const gm::GameData& gameData)
+void segmentedBarDisplay(sf::RenderWindow& window, const gm::GameData& gameData, const sf::Color color)
 {
 	static sf::RectangleShape healthPoint;
-	healthPoint.setFillColor(sf::Color{ 0, 150, 0 });
+	healthPoint.setFillColor(color);
 	healthPoint.setSize({ 10.f, 10.f });
 	
 	for (int i = 0; i < gameData.player.hp; i++)
@@ -305,7 +318,7 @@ int main()
 		deltaTime = gameData.clock.restart().asSeconds();
 
 		checkWindowInputs(window);
-		playerMovement(gameData.player);
+		playerMovement(gameData);
 		
 		gm::executeProcesses(gameData, gameData.projectiles);
 
@@ -327,7 +340,7 @@ int main()
 		sf::Sprite renderTextureSprite{ renderTexture.getTexture() };
 		window.draw(renderTextureSprite);
 
-		healthDisplay(window, gameData);
+		segmentedBarDisplay(window, gameData, sf::Color{ 0, 150, 0 });
 
 		gui.draw();
 		window.display();
