@@ -30,7 +30,11 @@ static void playerMovement(gm::Entity& player)
 
 static void playerCollisonReaction(const std::string& group, gm::Base* self)
 {
-	
+	gm::Entity* player = static_cast<gm::Entity*>(self);
+	if (group == "healthPickUp")
+	{
+		player->hp += 1;
+	}
 }
 
 static void initGame(gm::GameData& gameData)
@@ -41,6 +45,7 @@ static void initGame(gm::GameData& gameData)
 	gameData.player.sprite.setScale({ 2.f, 2.f });
 	gameData.player.textureOffset = { 2.f, 4.f };
 	gameData.player.collisionCallback = &playerCollisonReaction;
+	gameData.player.hp = 5;
 	gameData.entities.push_back(&gameData.player);
 }
 
@@ -76,6 +81,7 @@ static void shootPlayerProjectile(gm::GameData& gameData)
 
 			gameData.projectiles[vectorIndex]->velocity = sf::Vector2f{ 0.f, -1.f } *conf::PLAYER_BULLET_SPEED;
 			gameData.projectiles[vectorIndex]->collisionLayerToCheck = 1;
+			gameData.projectiles[vectorIndex]->collisionLayer = 2;
 		}
 		else
 		{
@@ -212,6 +218,50 @@ static void spawnNebula(gm::GameData& gameData)
 	}
 }
 
+static void spawnHealthPickups(gm::GameData& gameData)
+{
+	if (gameData.frame % 10 == 0 && rand() % 10 == 1)
+	{
+		std::random_device rd;
+		std::mt19937 generator{ rd() };
+
+		std::uniform_real_distribution<float> speedDistribution{ 1.f, 2.f };
+		std::uniform_int_distribution<int> positionDistribution{ 0, 720 };
+
+		const int x = positionDistribution(generator);
+
+		gm::Projectile* healthPickUp = new gm::Projectile{
+			{static_cast<float>(x), -49.f},
+			{20.f, 20.f},
+			sf::Color::Cyan
+		};
+
+		std::size_t i = gm::addToVector(gameData.projectiles, healthPickUp);
+
+		gameData.projectiles[i]->group = "healthPickUp";
+		gameData.projectiles[i]->sprite.setTexture(gameData.asteroidsTexture);
+		gameData.projectiles[i]->sprite.setTextureRect(gameData.defaultTextureRect);
+		gameData.projectiles[i]->sprite.setColor(sf::Color::Red);
+		gameData.projectiles[i]->textureOffset = { 3.f, 3.f };
+		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, 1.f } *conf::ENEMY_MOVEMENT_SPEED * speedDistribution(generator);
+		gameData.projectiles[i]->friction = { 1.f, 1.f };
+		gameData.projectiles[i]->collisionLayer = 2;
+		gameData.projectiles[i]->enableDamage = false;
+	}
+}
+
+void healthDisplay(sf::RenderWindow& window, const gm::GameData& gameData)
+{
+	static sf::RectangleShape healthPoint;
+	healthPoint.setFillColor(sf::Color{ 0, 150, 0 });
+	healthPoint.setSize({ 10.f, 10.f });
+	
+	for (int i = 0; i < gameData.player.hp; i++)
+	{
+		healthPoint.setPosition(12.f * i + 3.f, 20.f);
+		window.draw(healthPoint);
+	}
+}
 
 int main()
 {
@@ -277,11 +327,14 @@ int main()
 		sf::Sprite renderTextureSprite{ renderTexture.getTexture() };
 		window.draw(renderTextureSprite);
 
+		healthDisplay(window, gameData);
+
 		gui.draw();
 		window.display();
 
 		shootPlayerProjectile(gameData);
 		spawnAsteroids(gameData);
+		spawnHealthPickups(gameData);
 		//spawnEnemyRocketShips(gameData);
 		//spawnNebula(gameData);
 
