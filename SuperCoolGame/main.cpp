@@ -75,11 +75,13 @@ static void initGame(gm::GameData& gameData)
 	gameData.entities.push_back(&gameData.player);
 }
 
-static void checkWindowInputs(sf::RenderWindow& window)
+static void checkWindowInputs(sf::RenderWindow& window, tgui::Gui& gui)
 {
 	sf::Event event;
 	while (window.pollEvent(event))
 	{
+		gui.handleEvent(event);
+
 		if (event.type == sf::Event::Closed)
 			window.close();
 		if (event.type == sf::Event::KeyPressed)
@@ -138,6 +140,15 @@ static void shootPlayerProjectile(gm::GameData& gameData)
 				gameData.projectiles[vectorIndex]->collisionLayerToCheck = 1;
 			}
 		}
+		
+
+		std::random_device rd;
+		std::mt19937 generator{ rd() };
+		std::uniform_real_distribution<float> pitchDistribution(0.8f, 1.2f);
+
+		gameData.shootingSound.setPitch(pitchDistribution(generator));
+		gameData.shootingSound.play();
+
 		gameData.nextShootingFrame += 5;
 	}
 }
@@ -307,10 +318,10 @@ static void spawnHealthPickups(gm::GameData& gameData)
 
 static void segmentedBarDisplay(sf::RenderWindow& window, const gm::GameData& gameData, const sf::Color color)
 {
-	static sf::RectangleShape healthPoint;
-	healthPoint.setFillColor(color);
-	healthPoint.setSize({ 10.f, 10.f });
-	
+	sf::Sprite healthPoint;
+	healthPoint.setTexture(gameData.heartTexture);
+	healthPoint.setTextureRect(gameData.defaultTextureRect);
+
 	for (int i = 0; i < gameData.player.hp; i++)
 	{
 		healthPoint.setPosition(12.f * i + 3.f, 20.f);
@@ -327,19 +338,19 @@ static void levels(gm::GameData& gameData)
 	if (gameData.player.hp < 5)
 		spawnHealthPickups(gameData);
 
-	if (score > 100)
+	if (score > 50)
 	{
 		spawnEnemyRocketShips(gameData, true);
 	}
 	
 
-	if (score > 200)
+	if (score > 100)
 	{
 		spawnNebula(gameData);
 	}
 
 
-	if (score > 300)
+	if (score > 150)
 	{
 		spawnEnemyRocketShips(gameData, false);
 	}
@@ -361,12 +372,32 @@ int main()
 
 	//create ui
 	tgui::Gui gui{ window };
+	tgui::Theme blackTheme{ "../TGUI-1.x-nightly/themes/Black.txt" };
 
-	auto score = tgui::Label::create();
-	score->setText("Score: 0");
-	score->setTextSize(12);
-	score->getRenderer()->setTextColor(sf::Color::White);
-	gui.add(score);
+	auto titleText = tgui::Label::create();
+	titleText->setText("Launch Off");
+	titleText->setPosition(0, "20%");
+	titleText->setSize("100%", "30%");
+	titleText->setRenderer(blackTheme.getRenderer("Label"));
+	titleText->setTextSize(100);
+	titleText->setHorizontalAlignment(tgui::HorizontalAlignment::Center);
+	gui.add(titleText, "title");
+
+	auto startButton = tgui::Button::create();
+	startButton->setText("Start");
+	startButton->setPosition("50% - 10%", "title.bottom");
+	startButton->setSize("20%", "10%");
+	startButton->setRenderer(blackTheme.getRenderer("Button"));
+	startButton->setTextSize(50);
+	gui.add(startButton, "startButton");
+
+	bool startGame = false;
+
+	startButton->onClick([&startGame, &gui, &titleText, &startButton](){
+		startGame = true;
+		gui.remove(titleText);
+		gui.remove(startButton);
+	});
 
 	//init game
 	gm::GameData gameData;
@@ -389,60 +420,141 @@ int main()
 	//music
 	sf::Music music;
 	music.openFromFile("./assets/music/SpaceSong.oga");
-	music.setLoopPoints({ sf::milliseconds(0), sf::milliseconds(27435) });
-	music.setLoop(true);
-	music.play();
 
-
-	//game loop
-	while (window.isOpen())
+	while (window.isOpen()) 
 	{
-		deltaTime = gameData.clock.restart().asSeconds();
+		////main menu
+		while (window.isOpen() && !startGame)
+		{
+			window.clear();
+			checkWindowInputs(window, gui);
+			gui.draw();
+			window.display();
+		}
 
-		checkWindowInputs(window);
-		playerMovement(gameData);
+		auto score = tgui::Label::create();
+		score->setText("Score: 0");
+		score->setTextSize(12);
+		score->getRenderer()->setTextColor(sf::Color::White);
+		gui.add(score);
+
+		//game loop
+		music.setLoopPoints({ sf::milliseconds(0), sf::milliseconds(27435) });
+		music.setLoop(true);
+		music.play();
+
+		while (window.isOpen() && gameData.player.hp > 0)
+		{
+			deltaTime = gameData.clock.restart().asSeconds();
+
+			checkWindowInputs(window, gui);
+			playerMovement(gameData);
 		
-		gm::executeProcesses(gameData, gameData.projectiles);
+			gm::executeProcesses(gameData, gameData.projectiles);
 
-		gm::entityMovementCalculations(deltaTime, gameData.entities);
-		gm::projectileMovementCalculations(deltaTime, gameData.projectiles);
+			gm::entityMovementCalculations(deltaTime, gameData.entities);
+			gm::projectileMovementCalculations(deltaTime, gameData.projectiles);
 		
-		gm::staticCollisionCheck(gameData.staticBodies, gameData.entities);
-		gm::entityCollisionCheck(gameData.entities);
-		gm::projectileCollisionCheck(window, gameData.projectiles, gameData.entities);
+			gm::staticCollisionCheck(gameData.staticBodies, gameData.entities);
+			gm::entityCollisionCheck(gameData.entities);
+			gm::projectileCollisionCheck(gameData, gameData.projectiles, gameData.entities);
 
-		renderTexture.clear();
-		if (gameData.debugMode)
-			gm::drawRectList(renderTexture, gameData.projectiles);
+			renderTexture.clear();
+			if (gameData.debugMode)
+				gm::drawRectList(renderTexture, gameData.projectiles);
 
-		gm::drawSpriteList(gameData.frame, renderTexture, gameData.projectiles);
-		gm::drawSpriteList(gameData.frame, renderTexture, gameData.entities);
+			gm::drawSpriteList(gameData.frame, renderTexture, gameData.projectiles);
+			gm::drawSpriteList(gameData.frame, renderTexture, gameData.entities);
 
-		if (gameData.debugMode)
-			gm::drawRectList(renderTexture, gameData.entities);
-		renderTexture.display();
+			if (gameData.debugMode)
+				gm::drawRectList(renderTexture, gameData.entities);
+			renderTexture.display();
 
 
-		window.clear();
+			window.clear();
 
-		sf::Sprite renderTextureSprite{ renderTexture.getTexture() };
-		renderTextureSprite.setScale(scaleFactor);
-		window.draw(renderTextureSprite);
+			sf::Sprite renderTextureSprite{ renderTexture.getTexture() };
+			renderTextureSprite.setScale(scaleFactor);
+			window.draw(renderTextureSprite);
 
-		segmentedBarDisplay(window, gameData, sf::Color{ 0, 150, 0 });
+			segmentedBarDisplay(window, gameData, sf::Color{ 0, 150, 0 });
 
-		gui.draw();
-		window.display();
+			gui.draw();
+			window.display();
 
-		shootPlayerProjectile(gameData);
+			shootPlayerProjectile(gameData);
 		
-		levels(gameData);
+			levels(gameData);
 
-		gameData.frame += 1;
+			gameData.frame += 1;
 
-		//update score every ten frames
-		gameData.score = static_cast<unsigned long long>(gameData.frame / 20);
+			//update score every ten frames
+			gameData.score = static_cast<unsigned long long>(gameData.frame / 20);
 
-		score->setText("Score: " + std::to_string(gameData.score));
+			score->setText("Score: " + std::to_string(gameData.score));
+
+			if (gameData.player.hp > gameData.lastPlayerHp)
+			{
+				std::random_device rd;
+				std::mt19937 generator{ rd() };
+				std::uniform_real_distribution<float> pitchDistribution(0.8f, 1.2f);
+
+				gameData.healthSound.setPitch(pitchDistribution(generator));
+				gameData.healthSound.play();
+			}
+			else if (gameData.player.hp < gameData.lastPlayerHp)
+			{
+				std::random_device rd;
+				std::mt19937 generator{ rd() };
+				std::uniform_real_distribution<float> pitchDistribution(0.8f, 1.2f);
+
+				gameData.hurtSound.setPitch(pitchDistribution(generator));
+				gameData.hurtSound.play();
+			}
+
+			gameData.lastPlayerHp = gameData.player.hp;
+		}
+
+		music.stop();
+		gui.remove(score);
+
+		auto gameoverTitleText = tgui::Label::create();
+		gameoverTitleText->setText("Score: " + std::to_string(gameData.score));
+		gameoverTitleText->setPosition(0, "20%");
+		gameoverTitleText->setSize("100%", "30%");
+		gameoverTitleText->setRenderer(blackTheme.getRenderer("Label"));
+		gameoverTitleText->setTextSize(100);
+		gameoverTitleText->setHorizontalAlignment(tgui::HorizontalAlignment::Center);
+		gui.add(gameoverTitleText, "title");
+
+		auto restartButton = tgui::Button::create();
+		restartButton->setText("Start");
+		restartButton->setPosition("50% - 10%", "title.bottom");
+		restartButton->setSize("20%", "10%");
+		restartButton->setRenderer(blackTheme.getRenderer("Button"));
+		restartButton->setTextSize(50);
+		gui.add(restartButton, "restartButton");
+
+		bool exitGameOverMenu = false;
+
+		restartButton->onClick([&exitGameOverMenu, &startGame, &gameData](){
+			exitGameOverMenu = true;
+			gameData.frame = 0;
+			gameData.projectiles.clear();
+			gameData.entities.clear();
+			gameData.staticBodies.clear();
+			initGame(gameData);
+		});
+
+		while (window.isOpen() && !exitGameOverMenu)
+		{
+			window.clear();
+			checkWindowInputs(window, gui);
+			gui.draw();
+			window.display();
+		}
+
+		gui.remove(gameoverTitleText);
+		gui.remove(restartButton);
 	}
 }

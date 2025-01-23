@@ -2,11 +2,13 @@
 
 #include "vectorMath.h"
 #include "SFML/Graphics.hpp"
+#include "SFML/Audio.hpp"
 
 #include <array>
 #include <vector>
 #include <cmath>
 #include <string>
+#include <random>
 
 namespace conf
 {
@@ -122,11 +124,20 @@ namespace gm
 		sf::Clock clock;
 
 		Entity player;
-		unsigned int playerAmmo = 20;
+		int lastPlayerHp = 5;
 
 		std::vector<Entity*> entities;
 		std::vector<StaticBody*> staticBodies;
 		std::vector<Projectile*> projectiles;
+
+		sf::SoundBuffer shootingSoundBuffer;
+		sf::Sound shootingSound;
+		sf::SoundBuffer healthSoundBuffer;
+		sf::Sound healthSound;
+		sf::SoundBuffer hurtSoundBuffer;
+		sf::Sound hurtSound;
+		sf::SoundBuffer hurtTwoSoundBuffer;
+		sf::Sound hurtTwoSound;
 
 		const sf::IntRect defaultTextureRect{ {0, 0}, {16, 16} };
 		sf::Texture rocketshipTexture;
@@ -251,5 +262,5 @@ namespace gm
 	sf::Vector2f getOverlap(const sf::FloatRect& rectA, const sf::FloatRect& rectB);
 	void entityCollisionCheck(std::vector<Entity*>& entities);
 	void staticCollisionCheck(std::vector<StaticBody*>& staticBodies, std::vector<Entity*>& entities);
-	void projectileCollisionCheck(const sf::RenderWindow& window, std::vector<Projectile*>& projectiles, std::vector<Entity*>& entities);
+	void projectileCollisionCheck(gm::GameData& gameData, std::vector<Projectile*>& projectiles, std::vector<Entity*>& entities);
 }

@@ -53,4 +53,18 @@
   <ItemGroup>
     <None Include="assets\music\SpaceSong.oga" />
   </ItemGroup>
+  <ItemGroup>
+    <Media Include="assets\soundEffects\Laser_Shoot.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="assets\soundEffects\Pickup_Coin.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="assets\soundEffects\Hit_Hurt.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="assets\soundEffects\Hit_Hurt2.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+  </ItemGroup>
 </Project>

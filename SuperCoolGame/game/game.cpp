@@ -4,6 +4,16 @@ namespace gm
 {
 	GameData::GameData()
 	{
+		shootingSoundBuffer.loadFromFile("./assets/soundEffects/Laser_Shoot.wav");
+		shootingSound.setBuffer(shootingSoundBuffer);
+		healthSoundBuffer.loadFromFile("./assets/soundEffects/Pickup_Coin.wav");
+		healthSound.setBuffer(healthSoundBuffer);
+		hurtSoundBuffer.loadFromFile("./assets/soundEffects/Hit_Hurt.wav");
+		hurtSound.setBuffer(hurtSoundBuffer);
+		hurtTwoSoundBuffer.loadFromFile("./assets/soundEffects/Hit_Hurt2.wav");
+		hurtTwoSound.setBuffer(hurtSoundBuffer);
+
+
 		rocketshipTexture.loadFromFile("./assets/sprites/rocketship.png");
 		asteroidsTexture.loadFromFile("./assets/sprites/asteroids.png");
 		playerBulletTexture.loadFromFile("./assets/sprites/playerBullet.png");
@@ -221,7 +231,7 @@ namespace gm
 	}
 
 
-	void projectileCollisionCheck(const sf::RenderWindow& window, std::vector<Projectile*>& projectiles, std::vector<Entity*>& entities)
+	void projectileCollisionCheck(gm::GameData& gameData, std::vector<Projectile*>& projectiles, std::vector<Entity*>& entities)
 	{
 		sf::FloatRect windowRect{ {-50.f, -50.f}, sf::Vector2f{conf::WINDOW_WIDTH, conf::WINDOW_HEIGHT} + sf::Vector2f{100.f, 100.f}};
 
@@ -269,9 +279,18 @@ namespace gm
 						projectile->collisionCallback(projectileB->group, projectile);
 					}
 
+					if ((projectile->group == "projectile" || projectileB->group == "projectile") && !(projectile->group == "nebula" || projectileB->group == "nebula"))
+					{
+						std::random_device rd;
+						std::mt19937 generator{ rd() };
+						std::uniform_real_distribution<float> pitchDistribution(0.8f, 1.2f);
+
+						gameData.hurtTwoSound.setPitch(pitchDistribution(generator));
+						gameData.hurtTwoSound.play();
+					}
+
 					if (projectile->hp <= 0)
 						projectile = nullptr;
-
 
 					if (projectileB->collisionCallback)
 					{

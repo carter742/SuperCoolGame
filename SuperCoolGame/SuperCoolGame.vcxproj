@@ -116,6 +116,12 @@
   <ItemGroup>
     <None Include="assets\music\SpaceSong.oga" />
   </ItemGroup>
+  <ItemGroup>
+    <Media Include="assets\soundEffects\Hit_Hurt.wav" />
+    <Media Include="assets\soundEffects\Hit_Hurt2.wav" />
+    <Media Include="assets\soundEffects\Laser_Shoot.wav" />
+    <Media Include="assets\soundEffects\Pickup_Coin.wav" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.220531.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.220531.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
