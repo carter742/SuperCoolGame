@@ -10,9 +10,12 @@
 
 namespace conf
 {
+	constexpr float WINDOW_WIDTH = 400.f;
+	constexpr float WINDOW_HEIGHT = 200.f;
+
 	constexpr float PLAYER_MOVEMENT_SPEED = 100.f;
 	constexpr float PLAYER_DASH_SPEED = 500.f;
-	constexpr float PLAYER_BULLET_SPEED = 5.f;//10.f;
+	constexpr float PLAYER_BULLET_SPEED = 5.f;
 	constexpr float ENEMY_ROCKET_SHIP_SPEED = 2.f;
 	constexpr float ENEMY_MOVEMENT_SPEED = 0.5f;
 	constexpr float NEBULA_MOVEMENT_SPEED = 0.1f;
@@ -36,6 +39,7 @@ namespace gm
 
 		sf::Sprite sprite;
 		sf::Vector2f textureOffset;
+
 		unsigned int timeBetweenAnimationFrames = 10;
 		unsigned int animationLength = 32;
 
@@ -54,6 +58,8 @@ namespace gm
 	class Entity : public Base
 	{
 	public:
+		bool inNebula = false;
+
 		bool collisionEnabled = true;
 		bool gravityEnabled = false;
 
@@ -88,6 +94,8 @@ namespace gm
 		sf::Vector2f velocity;
 		sf::Vector2f acceleration;
 		sf::Vector2f friction = { 1.f, 1.f };
+
+		int maxHp = 1;
 		int hp = 1;
 
 		Projectile() : Base({ 0.f, 0.f }, { 0.f, 0.f }, sf::Color::Red) {}
@@ -103,9 +111,13 @@ namespace gm
 	public:
 		unsigned long long frame = 0;
 		unsigned long long nextShootingFrame = 0;
+		unsigned long long score = 0;
 
-		bool playerSplitShot = false;
+		bool playerSplitShot = true;
 		bool playerShooting = false;
+		bool playerInNebula = false;
+
+		bool debugMode = false;
 
 		sf::Clock clock;
 
@@ -120,6 +132,9 @@ namespace gm
 		sf::Texture rocketshipTexture;
 		sf::Texture asteroidsTexture;
 		sf::Texture playerBulletTexture;
+		sf::Texture nebulaTexture;
+		sf::Texture enemyRocketshipTexture;
+		sf::Texture heartTexture;
 
 		GameData();
 	};

@@ -7,6 +7,9 @@ namespace gm
 		rocketshipTexture.loadFromFile("./assets/sprites/rocketship.png");
 		asteroidsTexture.loadFromFile("./assets/sprites/asteroids.png");
 		playerBulletTexture.loadFromFile("./assets/sprites/playerBullet.png");
+		nebulaTexture.loadFromFile("./assets/sprites/nebula.png");
+		enemyRocketshipTexture.loadFromFile("./assets/sprites/enemyRocket.png");
+		heartTexture.loadFromFile("./assets/sprites/heart.png");
 	}
 }
 
@@ -40,7 +43,43 @@ namespace gm
 			if (entity->gravityEnabled)
 				entity->acceleration.y += 10.f;
 
+			if (entity->inNebula)
+			{
+				entity->acceleration *= 0.2f;
+				entity->inNebula = false;
+			}
+
 			entity->velocity += entity->acceleration * deltaTime;
+			
+			if (entity->group == "player")
+			{
+				const sf::Vector2f futurePosition = entity->position + entity->velocity;
+
+				if (futurePosition.x < 0)
+				{
+					entity->velocity.x = 0.f;
+					entity->position.x = 0.f;
+				}
+
+				if (futurePosition.y < 0)
+				{
+					entity->velocity.y = 0.f;
+					entity->position.y = 0.f;
+				}
+
+				if (futurePosition.x > conf::WINDOW_WIDTH - entity->size.x)
+				{
+					entity->velocity.x = 0.f;
+					entity->position.x = conf::WINDOW_WIDTH - entity->size.x;
+				}
+
+				if (futurePosition.y > conf::WINDOW_HEIGHT - entity->size.y)
+				{
+					entity->velocity.y = 0.f;
+					entity->position.y = conf::WINDOW_HEIGHT - entity->size.y;
+				}
+			}
+
 			entity->position += entity->velocity;
 
 			entity->acceleration = { 0.f, 0.f };
@@ -184,7 +223,7 @@ namespace gm
 
 	void projectileCollisionCheck(const sf::RenderWindow& window, std::vector<Projectile*>& projectiles, std::vector<Entity*>& entities)
 	{
-		sf::FloatRect windowRect{ {-50.f, -50.f}, static_cast<sf::Vector2f>(window.getSize()) + sf::Vector2f{100.f, 100.f} };
+		sf::FloatRect windowRect{ {-50.f, -50.f}, sf::Vector2f{conf::WINDOW_WIDTH, conf::WINDOW_HEIGHT} + sf::Vector2f{100.f, 100.f}};
 
 		for (auto& projectile : projectiles)
 		{
@@ -199,46 +238,51 @@ namespace gm
 				continue;
 			}
 
-			for (auto& projectileB : projectiles)
-			{
-				if (!projectile)
+			if (projectile->group != "healthPickUp")
+				for (auto& projectileB : projectiles)
+				{
+					if (!projectile)
+						break;
+
+					if (!projectileB || projectile == projectileB)
+						continue;
+
+					if (projectileB->group == "healthPickUp")
+						continue;
+
+					if (projectile->collisionLayerToCheck != projectileB->collisionLayer)
+						continue;
+
+					sf::FloatRect projectileBRect{ projectileB->position + projectileB->velocity, projectileB->size };
+
+					if (!projectileRect.intersects(projectileBRect))
+						continue;
+
+					if (projectile->takeDamage && projectileB->enableDamage)
+						projectile->hp -= 1;
+
+					if (projectileB->takeDamage && projectile->enableDamage)
+						projectileB->hp -= 1;
+
+					if (projectile->collisionCallback)
+					{
+						projectile->collisionCallback(projectileB->group, projectile);
+					}
+
+					if (projectile->hp <= 0)
+						projectile = nullptr;
+
+
+					if (projectileB->collisionCallback)
+					{
+						projectileB->collisionCallback(projectile->group, projectileB);
+					}
+
+					if (projectileB->hp <= 0)
+						projectileB = nullptr;
+
 					break;
-
-				if (!projectileB || projectile == projectileB)
-					continue;
-
-				if (projectile->collisionLayerToCheck != projectileB->collisionLayer)
-					continue;
-
-				sf::FloatRect projectileBRect{ projectileB->position + projectileB->velocity, projectileB->size };
-
-				if (!projectileRect.intersects(projectileBRect))
-					continue;
-
-				if (projectile->takeDamage || projectileB->enableDamage)
-					projectile->hp -= 1;
-
-				if (projectile->collisionCallback)
-				{
-					projectile->collisionCallback(projectileB->group, projectile);
 				}
-
-				if (projectile->hp <= 0)
-					projectile = nullptr;
-
-				if (projectileB->takeDamage || projectile->enableDamage)
-					projectileB->hp -= 1;
-
-				if (projectileB->collisionCallback)
-				{
-					projectileB->collisionCallback(projectile->group, projectileB);
-				}
-
-				if (projectileB->hp <= 0)
-					projectileB = nullptr;
-
-				break;
-			}
 
 			for (auto& entity : entities)
 			{
@@ -269,7 +313,7 @@ namespace gm
 				if (projectile->enableDamage)
 					entity->hp -= 1;
 
-				if (projectile->dissapearOnHit)
+				if (projectile->dissapearOnHit && projectile->takeDamage)
 					projectile = nullptr;
 
 				if (entity->hp <= 0)

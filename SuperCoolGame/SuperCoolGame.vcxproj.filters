@@ -40,5 +40,17 @@
     <Image Include="assets\sprites\playerBullet.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="assets\sprites\nebula.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\sprites\enemyRocket.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="assets\sprites\heart.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\music\SpaceSong.oga" />
   </ItemGroup>
 </Project>

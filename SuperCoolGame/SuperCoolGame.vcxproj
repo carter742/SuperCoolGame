@@ -107,8 +107,14 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\sprites\asteroids.png" />
+    <Image Include="assets\sprites\enemyRocket.png" />
+    <Image Include="assets\sprites\heart.png" />
+    <Image Include="assets\sprites\nebula.png" />
     <Image Include="assets\sprites\playerBullet.png" />
     <Image Include="assets\sprites\rocketship.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\music\SpaceSong.oga" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
