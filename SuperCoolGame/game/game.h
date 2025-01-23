@@ -96,6 +96,7 @@ namespace gm
 		sf::Vector2f velocity;
 		sf::Vector2f acceleration;
 		sf::Vector2f friction = { 1.f, 1.f };
+		sf::Vector2f lastSize;
 
 		int maxHp = 1;
 		int hp = 1;
@@ -114,6 +115,7 @@ namespace gm
 		unsigned long long frame = 0;
 		unsigned long long nextShootingFrame = 0;
 		unsigned long long score = 0;
+		unsigned long long highscore = 0;
 
 		bool playerSplitShot = true;
 		bool playerShooting = false;
