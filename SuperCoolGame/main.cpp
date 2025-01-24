@@ -1,4 +1,9 @@
-﻿#include "./game/game.h"
+﻿//Carter Shaw
+//2025 January 23
+//A space shooter game
+//Use WASD or arrow keys to move. Space or Left Click to shoot.
+
+#include "./game/game.h"
 #include "TGUI/TGUI.hpp"
 #include "TGUI/Backend/SFML-Graphics.hpp"
 #include "SFML/Audio.hpp"
@@ -79,7 +84,7 @@ static void playerCollisonReaction(const std::string& group, gm::Base* self)
 static void initGame(gm::GameData& gameData)
 {
 	//player attributes
-	gameData.player = gm::Entity{ { 0.f, 170.f }, { 12.f, 12.f }, sf::Color::Green };
+	gameData.player = gm::Entity{ { conf::WINDOW_WIDTH * 0.5 - 6.f, 170.f }, { 12.f, 12.f }, sf::Color::Green };
 	gameData.player.group = "player";
 	gameData.player.sprite.setTexture(gameData.rocketshipTexture);
 	gameData.player.sprite.setTextureRect(gameData.defaultTextureRect);
@@ -244,76 +249,96 @@ static void asteroidCallback(gm::GameData& gameData, gm::Base* self)
 //spawns an asteroid 
 static void spawnAsteroids(gm::GameData& gameData, int spawnRates = 10)
 {
+	//has a 1 / spawnRates change of spawning an asteroid every 10 frames
 	if (gameData.frame % 10 == 0 && rand() % spawnRates == 1)
 	{
+		//used to generate random numbers
 		std::random_device rd;
 		std::mt19937 generator{ rd() };
 
+		//create random number distributions for size, speed and position
 		std::uniform_real_distribution<float> sizeDistribution{ 30.f, 50.f };
 		std::uniform_real_distribution<float> speedDistribution{ 1.f, 2.f };
 		std::uniform_int_distribution<int> positionDistribution{ 0, 380 };
 
+		//set the size and x position to random numbers
 		const float size = sizeDistribution(generator);
 		const int x = positionDistribution(generator);
 
+		//create a new projectile
 		gm::Projectile* asteroid = new gm::Projectile{
 			{static_cast<float>(x), -49.f},
 			{size, size},
 			sf::Color::Cyan
 		};
 
-		asteroid->group = "asteroid";
-		asteroid->sprite.setTexture(gameData.asteroidsTexture);
-		asteroid->sprite.setTextureRect(gameData.defaultTextureRect);
-		asteroid->sprite.setScale({ (size + 6.f) / 16.f, (size + 6.f) / 16.f });
-		asteroid->textureOffset = { 3.f, 3.f };
-
+		//add asteroid to projectiles list
 		std::size_t i = gm::addToVector(gameData.projectiles, asteroid);
 
+		//set asteroid attributes
+		gameData.projectiles[i]->group = "asteroid";
+		gameData.projectiles[i]->sprite.setTexture(gameData.asteroidsTexture);
+		gameData.projectiles[i]->sprite.setTextureRect(gameData.defaultTextureRect);
+		gameData.projectiles[i]->sprite.setScale({ (size + 6.f) / 16.f, (size + 6.f) / 16.f });
+		gameData.projectiles[i]->textureOffset = { 3.f, 3.f };
 		gameData.projectiles[i]->velocity = sf::Vector2f{ 0.f, 1.f } *conf::ENEMY_MOVEMENT_SPEED * speedDistribution(generator);
 		gameData.projectiles[i]->friction = { 1.f, 1.f };
 		gameData.projectiles[i]->hp = static_cast<int>(size);
 		gameData.projectiles[i]->maxHp = static_cast<int>(size);
 		gameData.projectiles[i]->collisionLayer = 1;
 
+		//assign a process function that is called every frame
 		asteroid->processCallback = &asteroidCallback;
 	}
 }
 
+//called every frame to increase the size of the nebulas
 static void nebulaCallback(gm::GameData& gameData, gm::Base* self)
 {
+	//typecast to access all varaibles
 	gm::Projectile* nebula = static_cast<gm::Projectile*>(self);
 	
+	//increase the size of the nebula every second frame
 	if (gameData.frame % 2 == 0)
 	{
+		//set the size and reposition the nebula
 		nebula->size += sf::Vector2f{0.2f, 0.2f};
 		nebula->position -= sf::Vector2f{ 0.1f, 0.1f };
 		nebula->sprite.setScale({ (nebula->size.x + 6.f) / 16, (nebula->size.y + 6.f) / 16.f });
 	}
 }
 
+//spawns a nebula
 static void spawnNebula(gm::GameData& gameData, int spawnRates = 10)
 {
+	//spawn a nebula every 50 frames with a 1 / spawnRates of happening
 	if (gameData.frame % 50 == 0 && rand() % spawnRates == 1)
 	{
+		//used to generate random numbers
 		std::random_device rd;
 		std::mt19937 generator{ rd() };
 
+		//create random number distributions for speed and position
 		std::uniform_real_distribution<float> speedDistribution{ 1.f, 2.f };
 		std::uniform_int_distribution<int> positionDistribution{ 0, 420 };
 
+		//generate random position
 		const int x = positionDistribution(generator);
 
+		//create a new nebula
 		gm::Projectile* nebula = new gm::Projectile{
 			{static_cast<float>(x), -49.f},
 			{10.f, 10.f},
 			sf::Color::Cyan
 		};
 		
+		//make it a little transparent because it looks nicer
 		nebula->sprite.setColor(sf::Color{ 255, 255, 255, 100 });
 
+		//add projectiles list
 		std::size_t i = gm::addToVector(gameData.projectiles, nebula);
 
+		//set nebula attributes
 		gameData.projectiles[i]->processCallback = &nebulaCallback;
 		gameData.projectiles[i]->group = "nebula";
 		gameData.projectiles[i]->sprite.setTexture(gameData.nebulaTexture);
@@ -329,26 +354,34 @@ static void spawnNebula(gm::GameData& gameData, int spawnRates = 10)
 	}
 }
 
+//creates a health pick up
 static void spawnHealthPickups(gm::GameData& gameData)
 {
+	//spawns a health pick up with a 1/10 chance every 10 frame
 	if (gameData.frame % 10 == 0 && rand() % 10 == 1)
 	{
+		//used to generate random numbers
 		std::random_device rd;
 		std::mt19937 generator{ rd() };
 
+		//create random number distributions for speed and position
 		std::uniform_real_distribution<float> speedDistribution{ 1.f, 2.f };
 		std::uniform_int_distribution<int> positionDistribution{ 0, 720 };
 
+		//generate random position
 		const int x = positionDistribution(generator);
 
+		//create a new health pick up
 		gm::Projectile* healthPickUp = new gm::Projectile{
 			{static_cast<float>(x), -49.f},
 			{15.f, 15.f},
 			sf::Color::Cyan
 		};
 
+		//add the health pick up to the projectiles
 		std::size_t i = gm::addToVector(gameData.projectiles, healthPickUp);
 
+		//set nebula attributes
 		gameData.projectiles[i]->group = "healthPickUp";
 		gameData.projectiles[i]->sprite.setTexture(gameData.heartTexture);
 		gameData.projectiles[i]->sprite.setTextureRect(gameData.defaultTextureRect);
@@ -362,23 +395,30 @@ static void spawnHealthPickups(gm::GameData& gameData)
 	}
 }
 
-static void segmentedBarDisplay(sf::RenderWindow& window, const gm::GameData& gameData, const sf::Color color)
+//creates a row of heart sprites. The size depends on the player health.
+static void healthDisplay(sf::RenderWindow& window, const gm::GameData& gameData)
 {
+	//create the sprite
 	sf::Sprite healthPoint;
 	healthPoint.setTexture(gameData.heartTexture);
 	healthPoint.setTextureRect(gameData.defaultTextureRect);
+	healthPoint.setScale({ 2.f, 2.f });
 
+	//set the sprite position
 	for (int i = 0; i < gameData.player.hp; i++)
 	{
-		healthPoint.setPosition(12.f * i + 3.f, 20.f);
+		healthPoint.setPosition(24.f * i + 5.f, 40.f);
 		window.draw(healthPoint);
 	}
 }
 
+//changes the difficulty of the game, based on the score.
 static void levels(gm::GameData& gameData)
 {
+	//get the score
 	const unsigned long long& score = gameData.score;
 
+	//asteroids spawn no matter what. The spawn chance will just increase after 200 score is reached.
 	if (score < 200)
 		spawnAsteroids(gameData);
 	else
@@ -386,26 +426,31 @@ static void levels(gm::GameData& gameData)
 		spawnAsteroids(gameData, 5);
 	}
 
+	//only spawn health if the player is bellow 5 hp.
+	//This raises the difficulty. 
 	if (gameData.player.hp < 5)
 		spawnHealthPickups(gameData);
 
+	//spawn rockets to the right of the player at score 50 and greater
 	if (score > 50)
 	{
 		spawnEnemyRocketShips(gameData, true);
 	}
 
-
+	//spawn nebula at score 100 and greater
 	if (score > 100)
 	{
 		spawnNebula(gameData);
 	}
 
-
+	//spawn rockets to the left at 150 and greater
 	if (score > 150)
 	{
 		spawnEnemyRocketShips(gameData, false);
 	}
 
+	//raise the chances of rockets spawning at 250 and greater. 
+	//follows a different pattern then asteroids due to technical difficulty and time constraints
 	if (score > 250)
 	{
 		spawnEnemyRocketShips(gameData, true);
@@ -413,11 +458,12 @@ static void levels(gm::GameData& gameData)
 	}
 }
 
+
 int main()
 {
 	//create window
-	sf::RenderWindow window{ sf::VideoMode{ 800, 400 }, "Game" };
-	window.setFramerateLimit(60);
+	sf::RenderWindow window{ sf::VideoMode{ 1600, 800}, "Game"};
+	window.setFramerateLimit(60); // <-- the spawn rates are caculated based of off the fps, so changing this will affect the spawn rates.
 
 	//create camera
 	sf::View camera{ sf::FloatRect{
@@ -431,37 +477,6 @@ int main()
 	tgui::Gui gui{ window };
 	tgui::Theme blackTheme{ "../TGUI-1.x-nightly/themes/Black.txt" };
 
-	auto titleText = tgui::Label::create();
-	titleText->setText("Launch Off");
-	titleText->setPosition(0, "20%");
-	titleText->setSize("100%", "30%");
-	titleText->setRenderer(blackTheme.getRenderer("Label"));
-	titleText->setTextSize(100);
-	titleText->setHorizontalAlignment(tgui::HorizontalAlignment::Center);
-	gui.add(titleText, "title");
-
-	auto startButton = tgui::Button::create();
-	startButton->setText("Start");
-	startButton->setPosition("50% - 10%", "title.bottom");
-	startButton->setSize("20%", "10%");
-	startButton->setRenderer(blackTheme.getRenderer("Button"));
-	startButton->setTextSize(50);
-	gui.add(startButton, "startButton");
-
-	bool startGame = false;
-
-	startButton->onClick([&startGame, &gui, &titleText, &startButton](){
-		startGame = true;
-		gui.remove(titleText);
-		gui.remove(startButton);
-	});
-
-	//init game
-	gm::GameData gameData;
-	initGame(gameData);
-
-	float deltaTime = 0.f;
-
 	//make texture for rendering
 	sf::RenderTexture renderTexture;
 	if (!renderTexture.create(static_cast<unsigned int>(conf::WINDOW_WIDTH), static_cast<unsigned int>(conf::WINDOW_HEIGHT)))
@@ -469,18 +484,67 @@ int main()
 		printf("Failed to make texture!\n");
 	}
 
+	//scales the game to match the screen size
 	sf::Vector2f scaleFactor = {
 		static_cast<float>(window.getSize().x) / conf::WINDOW_WIDTH,
 		static_cast<float>(window.getSize().y) / conf::WINDOW_HEIGHT
 	};
 
-	//music
+	//create the music
 	sf::Music music;
 	music.openFromFile("./assets/music/SpaceSong.oga");
 
+	//init game
+	gm::GameData gameData;
+	initGame(gameData);
+
+	//used to tell when to switch from the main menu to the game
+	bool startGame = false;
+
+	//used to tell the time inbetween frames
+	float deltaTime = 0.f;
+
+	/*
+	* This is menu loop. This is the structure:
+	* - Main Menu
+	* - Game
+	* - Restart Game Menu
+	*/
 	while (window.isOpen()) 
 	{
-		////main menu
+		//create the main menu the game is on the main menu screen
+		if (!startGame)
+		{
+			//create a title screen
+			auto titleText = tgui::Label::create();
+			titleText->setText("Launch Off");
+			titleText->setPosition(0, "20%");
+			titleText->setSize("100%", "30%");
+			titleText->setRenderer(blackTheme.getRenderer("Label"));
+			titleText->setTextSize(100);
+			titleText->setHorizontalAlignment(tgui::HorizontalAlignment::Center);
+			gui.add(titleText, "title");
+
+			//create a start button
+			auto startButton = tgui::Button::create();
+			startButton->setText("Start");
+			startButton->setPosition("50% - 10%", "title.bottom");
+			startButton->setSize("20%", "10%");
+			startButton->setRenderer(blackTheme.getRenderer("Button"));
+			startButton->setTextSize(50);
+			gui.add(startButton, "startButton");
+
+			//when the start button is pressed remove the main menu and start the game
+			startButton->onClick([&startGame, &gui, &titleText, &startButton]()
+				{
+					startGame = true;
+					gui.remove(titleText);
+					gui.remove(startButton);
+				});
+		}
+
+
+		//draw the main menu. It stops when the game is started
 		while (window.isOpen() && !startGame)
 		{
 			window.clear();
@@ -489,126 +553,172 @@ int main()
 			window.display();
 		}
 
+		//add the score once the game starts
 		auto score = tgui::Label::create();
 		score->setText("Score: 0");
 		score->setTextSize(28);
 		score->getRenderer()->setTextColor(sf::Color::White);
 		gui.add(score);
 
-		//game loop
+		//start the game music
 		music.setLoopPoints({ sf::milliseconds(0), sf::milliseconds(27435) });
 		music.setLoop(true);
 		music.play();
 
+		//this is the main gameloop. It stops when the player has no health left.
 		while (window.isOpen() && gameData.player.hp > 0)
 		{
+			//find the time between frames
 			deltaTime = gameData.clock.restart().asSeconds();
 
+			//scale score text size
+			score->setTextSize(static_cast<unsigned int>(static_cast<float>(window.getSize().x) * 0.02f));
+
+			//check window inputs and player inputs
 			checkWindowInputs(window, gui);
 			playerMovement(gameData);
-		
+			
+			//execute any process that are on the game objects
 			gm::executeProcesses(gameData, gameData.projectiles);
 
+			//calculate the movement for the entity and for the projectiles respectivly
 			gm::entityMovementCalculations(deltaTime, gameData.entities);
 			gm::projectileMovementCalculations(deltaTime, gameData.projectiles);
-		
+			
+			//perform the collision checks on the game objects (ie. Projectiles, Entities, StaticBodies)
 			gm::staticCollisionCheck(gameData.staticBodies, gameData.entities);
 			gm::entityCollisionCheck(gameData.entities);
 			gm::projectileCollisionCheck(gameData, gameData.projectiles, gameData.entities);
 
+			//clear the render texture
 			renderTexture.clear();
+
+			//if debug mode is enabled draw the collision shapes of the projectiles
 			if (gameData.debugMode)
 				gm::drawRectList(renderTexture, gameData.projectiles);
 
+			//draw the sprites for the game objects
 			gm::drawSpriteList(gameData.frame, renderTexture, gameData.projectiles);
 			gm::drawSpriteList(gameData.frame, renderTexture, gameData.entities);
 
+			//if debug mode is enabled draw the collision shapes of the entities
 			if (gameData.debugMode)
 				gm::drawRectList(renderTexture, gameData.entities);
+
+
+			//display the render texture
 			renderTexture.display();
 
 
+			//clear the window
 			window.clear();
 
+			//draw the texture of the renderTexture and scale it to the window
 			sf::Sprite renderTextureSprite{ renderTexture.getTexture() };
 			renderTextureSprite.setScale(scaleFactor);
 			window.draw(renderTextureSprite);
 
-			segmentedBarDisplay(window, gameData, sf::Color{ 0, 150, 0 });
-
+			
+			healthDisplay(window, gameData);
 			gui.draw();
+
 			window.display();
 
+			//shoot the player projectiles
 			shootPlayerProjectile(gameData);
 		
+			//scale the difficulty based of the score
 			levels(gameData);
 
+			//update the current frame
 			gameData.frame += 1;
 
-			//update score every ten frames
+			//update score every ten frames and display it
 			gameData.score = static_cast<unsigned long long>(gameData.frame / 20);
-
 			score->setText("Score: " + std::to_string(gameData.score));
 
+			//play the heal sound if the player gains health
 			if (gameData.player.hp > gameData.lastPlayerHp)
 			{
+				//generate a random pitch
 				std::random_device rd;
 				std::mt19937 generator{ rd() };
 				std::uniform_real_distribution<float> pitchDistribution(0.8f, 1.2f);
 
+				//set the pitch and play the sound
 				gameData.healthSound.setPitch(pitchDistribution(generator));
 				gameData.healthSound.play();
 			}
+			//play the hurt sound if the player loses health
 			else if (gameData.player.hp < gameData.lastPlayerHp)
 			{
+				//generate a random pitch
 				std::random_device rd;
 				std::mt19937 generator{ rd() };
 				std::uniform_real_distribution<float> pitchDistribution(0.8f, 1.2f);
 
+				//set the pitch and play the sound
 				gameData.hurtSound.setPitch(pitchDistribution(generator));
 				gameData.hurtSound.play();
 			}
 
+			//update the last frame
 			gameData.lastPlayerHp = gameData.player.hp;
 		}
 
+		//set the highscore if the score is lower
 		if (gameData.highscore < gameData.score)
 			gameData.highscore = gameData.score;
 
+		//stop the music and remove the game
 		music.stop();
 		gui.remove(score);
 
+		//create the game over menu
+		//create the title
 		auto gameoverTitleText = tgui::Label::create();
 		gameoverTitleText->setText("Score: " + std::to_string(gameData.score));
 		gameoverTitleText->setPosition(0, "20%");
-		gameoverTitleText->setSize("100%", "20%");
+		gameoverTitleText->setSize("100%", "11%");
 		gameoverTitleText->setRenderer(blackTheme.getRenderer("Label"));
 		gameoverTitleText->setTextSize(80);
 		gameoverTitleText->setHorizontalAlignment(tgui::HorizontalAlignment::Center);
 		gui.add(gameoverTitleText, "title");
 
+		//create the highscore display
 		auto highscoreText = tgui::Label::create();
+		highscoreText->getRenderer()->setScrollbarWidth(0);
 		highscoreText->setText("Highscore: " + std::to_string(gameData.highscore));
 		highscoreText->setPosition(0, "title.bottom");
-		highscoreText->setSize("100%", "30%");
+		highscoreText->setSize("100%", "10%");
 		highscoreText->setRenderer(blackTheme.getRenderer("Label"));
 		highscoreText->setTextSize(50);
 		highscoreText->setHorizontalAlignment(tgui::HorizontalAlignment::Center);
 		gui.add(highscoreText, "highscore");
 
+		//create the restart button
 		auto restartButton = tgui::Button::create();
-		restartButton->setText("Start");
-		restartButton->setPosition("50% - 10%", "highscore.bottom");
-		restartButton->setSize("20%", "10%");
+		restartButton->setText("Restart");
+		restartButton->setPosition("45%", "highscore.bottom");
+		restartButton->setSize("10%", "5%");
 		restartButton->setRenderer(blackTheme.getRenderer("Button"));
-		restartButton->setTextSize(50);
+		restartButton->setTextSize(25);
 		gui.add(restartButton, "restartButton");
 
-		
+		//create the main menu button
+		auto mainMenuButton = tgui::Button::create();
+		mainMenuButton->setText("Main Menu");
+		mainMenuButton->setPosition("45%", "restartButton.bottom + 5%");
+		mainMenuButton->setSize("10%", "5%");
+		mainMenuButton->setRenderer(blackTheme.getRenderer("Button"));
+		mainMenuButton->setTextSize(25);
+		gui.add(mainMenuButton, "mainMenuButton");
 
+		//used to tell if the game over menu should close
 		bool exitGameOverMenu = false;
 
-		restartButton->onClick([&exitGameOverMenu, &startGame, &gameData](){
+		//resets the game and starts it again
+		restartButton->onClick([&exitGameOverMenu, &gameData](){
 			exitGameOverMenu = true;
 			gameData.frame = 0;
 			gameData.score = 0;
@@ -618,6 +728,21 @@ int main()
 			initGame(gameData);
 		});
 
+		//brings the game back to the main menu
+		mainMenuButton->onClick([&exitGameOverMenu, &startGame, &gameData](){
+			exitGameOverMenu = true;
+			startGame = false;
+			gameData.frame = 0;
+			gameData.score = 0;
+			gameData.projectiles.clear();
+			gameData.entities.clear();
+			gameData.staticBodies.clear();
+			initGame(gameData);
+		});
+		
+
+		//game over menu loop. Breaks if the game is restarted or if the 
+		//user is going to the main menu
 		while (window.isOpen() && !exitGameOverMenu)
 		{
 			window.clear();
@@ -626,8 +751,10 @@ int main()
 			window.display();
 		}
 
+		//remove the game over menu
 		gui.remove(gameoverTitleText);
 		gui.remove(highscoreText);
 		gui.remove(restartButton);
+		gui.remove(mainMenuButton);
 	}
 }
